@@ -1,6 +1,6 @@
 import "reflect-metadata"
 import { Request, Response, RequestHandler, NextFunction } from "express"
-import { AppRouter } from "../AppRouter"
+import { AppRouter } from "./../services/router.services"
 import { MetadataKeys } from "./MetadataKeys"
 import { Methods } from "./Methods"
 

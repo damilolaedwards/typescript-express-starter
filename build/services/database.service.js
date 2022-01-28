@@ -1,4 +1,23 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -35,72 +54,30 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Input = exports.auth = void 0;
-var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+exports.connectToDatabase = void 0;
+var mongoDB = __importStar(require("mongodb"));
 var User_1 = require("../models/User");
-//Middlewares
-var auth = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var token_1, decoded, user, e_1;
-    var _a;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
-            case 0:
-                _b.trys.push([0, 4, , 5]);
-                token_1 = (_a = req.header("Authorization")) === null || _a === void 0 ? void 0 : _a.replace("Bearer ", "");
-                if (!(token_1 && process.env.JWT_SECRET)) return [3 /*break*/, 2];
-                decoded = jsonwebtoken_1.default.verify(token_1, process.env.JWT_SECRET);
-                return [4 /*yield*/, User_1.User.collection.findOne({ _id: decoded._id })];
-            case 1:
-                user = _b.sent();
-                if (!user ||
-                    !user.tokens.find(function (user_token) {
-                        user_token == token_1;
-                    })) {
-                    throw new Error();
-                }
-                req.token = token_1;
-                req.user = user;
-                next();
-                return [3 /*break*/, 3];
-            case 2: throw new Error("invalid token or JWT_SECRET not provided in config file");
-            case 3: return [3 /*break*/, 5];
-            case 4:
-                e_1 = _b.sent();
-                res.status(401).send({ error: "Please authenticate!" });
-                return [3 /*break*/, 5];
-            case 5: return [2 /*return*/];
-        }
+function connectToDatabase() {
+    return __awaiter(this, void 0, void 0, function () {
+        var client, db;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (!process.env.MONGODB_URL) {
+                        throw new Error("MONGODB_URL not set in config");
+                    }
+                    client = new mongoDB.MongoClient(process.env.MONGODB_URL);
+                    return [4 /*yield*/, client.connect()];
+                case 1:
+                    _a.sent();
+                    db = client.db(process.env.DB_NAME);
+                    //Models Database Connections
+                    User_1.User.injectDB(db);
+                    console.log("Successfully connected to database: " + db.databaseName);
+                    return [2 /*return*/];
+            }
+        });
     });
-}); };
-exports.auth = auth;
-var Input = /** @class */ (function () {
-    function Input() {
-    }
-    Input.trim = function (fields) {
-        return function (req, res, next) {
-            fields.forEach(function (field) {
-                if (req.body[field]) {
-                    req.body[field] = req.body[field].trim();
-                }
-            });
-            next();
-        };
-    };
-    Input.sanitize = function (fields) {
-        return function (req, res, next) {
-            var data = Object.keys(req.body);
-            data.forEach(function (item) {
-                if (!fields.includes(item)) {
-                    delete req.body[item];
-                }
-            });
-            next();
-        };
-    };
-    return Input;
-}());
-exports.Input = Input;
+}
+exports.connectToDatabase = connectToDatabase;
