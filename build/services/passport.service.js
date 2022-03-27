@@ -39,61 +39,51 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Input = exports.auth = void 0;
-var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-var User_1 = require("../models/User");
-//Middlewares
-var auth = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var token_1, decoded, user, e_1;
-    var _a;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
+var passport_1 = __importDefault(require("passport"));
+var User_1 = require("./../models/User");
+var GoogleStrategy = require("passport-google-oauth20").Strategy;
+passport_1.default.serializeUser(function (user, done) {
+    done(null, user._id);
+});
+passport_1.default.deserializeUser(function (id, done) {
+    User_1.User.collection.findOne({ _id: id }).then(function (user) {
+        done(null, user);
+    });
+});
+passport_1.default.use(new GoogleStrategy({
+    callbackURL: '/auth/google/callback',
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    proxy: true
+}, function (accessToken, refreshToken, profile, done) { return __awaiter(void 0, void 0, void 0, function () {
+    var existingUser, user, token, err_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
             case 0:
-                _b.trys.push([0, 4, , 5]);
-                token_1 = (_a = req.header("Authorization")) === null || _a === void 0 ? void 0 : _a.replace("Bearer ", "");
-                if (!(token_1 && process.env.JWT_SECRET)) return [3 /*break*/, 2];
-                decoded = jsonwebtoken_1.default.verify(token_1, process.env.JWT_SECRET);
-                return [4 /*yield*/, User_1.User.collection.findOne({ _id: decoded._id })];
+                _a.trys.push([0, 4, , 5]);
+                return [4 /*yield*/, User_1.User.collection.findOne({ googleId: profile.id })];
             case 1:
-                user = _b.sent();
-                if (!user ||
-                    !user.tokens.find(function (user_token) {
-                        user_token == token_1;
-                    })) {
-                    throw new Error();
+                existingUser = _a.sent();
+                if (existingUser) {
+                    return [2 /*return*/, done(null, existingUser)];
                 }
-                req.token = token_1;
-                req.user = user;
-                next();
-                return [3 /*break*/, 3];
-            case 2: throw new Error("invalid token or JWT_SECRET not provided in config file");
-            case 3: return [3 /*break*/, 5];
+                return [4 /*yield*/, User_1.User.collection.insertOne({
+                        googleId: profile.id,
+                        email: profile.emails[0].value
+                    })];
+            case 2:
+                user = _a.sent();
+                token = User_1.User.generateAuthToken(user);
+                return [4 /*yield*/, User_1.User.addToken(user, token)];
+            case 3:
+                _a.sent();
+                done(null, user);
+                return [3 /*break*/, 5];
             case 4:
-                e_1 = _b.sent();
-                res.status(401).send({ error: "Please authenticate!" });
+                err_1 = _a.sent();
+                done(err_1, null);
                 return [3 /*break*/, 5];
             case 5: return [2 /*return*/];
         }
     });
-}); };
-exports.auth = auth;
-var Input = /** @class */ (function () {
-    function Input() {
-    }
-    Input.sanitize = function (fields) {
-        return function (req, res, next) {
-            var data = Object.keys(req.body);
-            data.forEach(function (item) {
-                if (!fields.includes(item)) {
-                    delete req.body[item];
-                }
-                else {
-                    req.body[item] = req.body[item].trim();
-                }
-            });
-            next();
-        };
-    };
-    return Input;
-}());
-exports.Input = Input;
+}); }));

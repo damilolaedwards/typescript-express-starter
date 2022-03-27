@@ -11,11 +11,11 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.controller = void 0;
 require("reflect-metadata");
-var router_services_1 = require("./../services/router.services");
+var router_service_1 = require("../services/router.service");
 var MetadataKeys_1 = require("./MetadataKeys");
 function controller(routePrefix) {
     return function (target) {
-        var router = router_services_1.AppRouter.instance();
+        var router = router_service_1.AppRouter.instance();
         for (var key in target.prototype) {
             var routeHandler = target.prototype[key];
             var path = Reflect.getMetadata(MetadataKeys_1.MetadataKeys.path, target.prototype, key);

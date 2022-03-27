@@ -42,26 +42,19 @@ export const auth: RequestHandler = async (
 }
 
 export class Input {
-  static trim(fields: string[]) {
-    return function (req: Request, res: Response, next: NextFunction) {
-      fields.forEach((field: string) => {
-        if (req.body[field]) {
-          req.body[field] = req.body[field].trim()
-        }
-      })
-      next()
-    }
-  }
-
+  
   static sanitize(fields: string[]) {
     return function (req: Request, res: Response, next: NextFunction) {
       const data = Object.keys(req.body)
       data.forEach((item: string) => {
         if (!fields.includes(item)) {
           delete req.body[item]
+        }else{
+          req.body[item] = req.body[item].trim()
         }
       })
       next()
     }
   }
 }
+
