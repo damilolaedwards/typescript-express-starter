@@ -40,6 +40,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
+var crypto_1 = __importDefault(require("crypto"));
 var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 var bcryptjs_1 = __importDefault(require("bcryptjs"));
 var users;
@@ -64,24 +65,72 @@ var User = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
-    User.required = function () {
-        return ["email", "password"];
+    User.getAuthUser = function (user) {
+        delete user.password;
+        delete user.tokens;
+        return user;
     };
-    User.generateAuthToken = function (user) {
+    User.getUser = function (email) {
         return __awaiter(this, void 0, void 0, function () {
-            var token, tokens;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0:
-                        if (!process.env.JWT_SECRET) {
-                            throw new Error("JWT_SECRET not provided in config file");
-                        }
-                        token = jsonwebtoken_1.default.sign({ _id: user._id.toString() }, process.env.JWT_SECRET);
-                        tokens = user.tokens.push(token);
-                        return [4 /*yield*/, users.findOneAndUpdate({ _id: user._id }, { $set: { tokens: tokens } })];
+                    case 0: return [4 /*yield*/, users.findOne({ email: email })];
+                    case 1: return [2 /*return*/, _a.sent()];
+                }
+            });
+        });
+    };
+    User.generateAuthToken = function (user) {
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET not provided in config file");
+        }
+        return jsonwebtoken_1.default.sign({ _id: user._id.toString() }, process.env.JWT_SECRET);
+    };
+    User.addToken = function (user, token) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, users.updateOne({ _id: user._id }, { $push: { tokens: token } })];
                     case 1:
                         _a.sent();
-                        return [2 /*return*/, { user: user, token: token }];
+                        user.tokens.push(token);
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    User.removeToken = function (user, token) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, users.updateOne({ _id: user._id }, { $pull: { tokens: { $eq: token } } })];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    User.removeAllTokens = function (user) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, users.updateOne({ _id: user._id }, { tokens: [] })];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    User.saveResetToken = function (user, hash) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, user.updateOne({ _id: user._id }, { password_reset_token: hash })];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
                 }
             });
         });
@@ -91,34 +140,82 @@ var User = /** @class */ (function () {
             var user, isMatch;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, users.findOne({ email: email, password: password })];
+                    case 0: return [4 /*yield*/, users.findOne({ email: email })];
                     case 1:
                         user = _a.sent();
                         if (!user) {
-                            throw new Error("Unable to login");
+                            throw new Error("Matching credentials not found!");
                         }
                         isMatch = bcryptjs_1.default.compare(password, user.password);
                         if (!isMatch) {
-                            throw new Error("Unable to login");
+                            throw new Error("Incorrect password");
                         }
                         return [2 /*return*/, user];
                 }
             });
         });
     };
-    User.create = function (data) {
+    User.create = function (user) {
         return __awaiter(this, void 0, void 0, function () {
-            var i, _a, user;
+            var _a, created_at;
             return __generator(this, function (_b) {
                 switch (_b.label) {
-                    case 0: return [4 /*yield*/, users.insertOne(data)];
+                    case 0:
+                        _a = user;
+                        return [4 /*yield*/, bcryptjs_1.default.hash(user.password, 8)];
                     case 1:
-                        i = _b.sent();
-                        _a = data;
-                        return [4 /*yield*/, bcryptjs_1.default.hash(data.password, 8)];
-                    case 2:
                         _a.password = _b.sent();
-                        user = Object.assign({ _id: i.insertedId, tokens: [] }, data);
+                        return [4 /*yield*/, users.insertOne(Object.assign(user, { created_at: "$$NOW", tokens: [] }))];
+                    case 2:
+                        created_at = _b.sent();
+                        return [2 /*return*/, user];
+                }
+            });
+        });
+    };
+    User.passwordReset = function (user) {
+        return __awaiter(this, void 0, void 0, function () {
+            var clientURL, resetToken, hash, link;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        clientURL = process.env.CLIENT_URL;
+                        resetToken = crypto_1.default.randomBytes(32).toString("hex");
+                        return [4 /*yield*/, bcryptjs_1.default.hash(resetToken, 8)];
+                    case 1:
+                        hash = _a.sent();
+                        return [4 /*yield*/, User.saveResetToken(user, hash)];
+                    case 2:
+                        _a.sent();
+                        link = clientURL + "/passwordReset?token=" + resetToken + "&id=" + user._id;
+                        return [2 /*return*/, link];
+                }
+            });
+        });
+    };
+    User.changePassword = function (userId, token, password) {
+        return __awaiter(this, void 0, void 0, function () {
+            var user, isValid, hash;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, users.findOne({ _id: userId })];
+                    case 1:
+                        user = _a.sent();
+                        if (!user || !user.password_reset_token) {
+                            throw new Error("Invalid or expired password reset token");
+                        }
+                        return [4 /*yield*/, bcryptjs_1.default.compare(token, user.token)];
+                    case 2:
+                        isValid = _a.sent();
+                        if (!isValid) {
+                            throw new Error("Invalid or expired password reset token");
+                        }
+                        return [4 /*yield*/, bcryptjs_1.default.hash(password, 8)];
+                    case 3:
+                        hash = _a.sent();
+                        return [4 /*yield*/, users.updateOne({ _id: userId }, { $set: { password: hash, password_reset_token: null } })];
+                    case 4:
+                        _a.sent();
                         return [2 /*return*/, user];
                 }
             });

@@ -35,65 +35,30 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Input = exports.auth = void 0;
-var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-var User_1 = require("../models/User");
-//Middlewares
-var auth = function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var token_1, decoded, user, e_1;
-    var _a;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
-            case 0:
-                _b.trys.push([0, 4, , 5]);
-                token_1 = (_a = req.header("Authorization")) === null || _a === void 0 ? void 0 : _a.replace("Bearer ", "");
-                if (!(token_1 && process.env.JWT_SECRET)) return [3 /*break*/, 2];
-                decoded = jsonwebtoken_1.default.verify(token_1, process.env.JWT_SECRET);
-                return [4 /*yield*/, User_1.User.collection.findOne({ _id: decoded._id })];
-            case 1:
-                user = _b.sent();
-                if (!user ||
-                    !user.tokens.find(function (user_token) {
-                        user_token == token_1;
-                    })) {
-                    throw new Error();
-                }
-                req.token = token_1;
-                req.user = user;
-                next();
-                return [3 /*break*/, 3];
-            case 2: throw new Error("invalid token or JWT_SECRET not provided in config file");
-            case 3: return [3 /*break*/, 5];
-            case 4:
-                e_1 = _b.sent();
-                res.status(401).send({ error: "Please authenticate!" });
-                return [3 /*break*/, 5];
-            case 5: return [2 /*return*/];
-        }
-    });
-}); };
-exports.auth = auth;
-var Input = /** @class */ (function () {
-    function Input() {
+exports.Mail = void 0;
+var Mail = /** @class */ (function () {
+    function Mail() {
     }
-    Input.sanitize = function (fields) {
-        return function (req, res, next) {
-            var data = Object.keys(req.body);
-            data.forEach(function (item) {
-                if (!fields.includes(item)) {
-                    delete req.body[item];
-                }
-                else {
-                    req.body[item] = req.body[item].trim();
-                }
-            });
-            next();
-        };
+    Mail.resetPassword = function (email, subject, props, template) {
+        return __awaiter(this, void 0, void 0, function () { return __generator(this, function (_a) {
+            return [2 /*return*/];
+        }); });
     };
-    return Input;
+    Mail.passwordChanged = function (email, subject, props, template) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/];
+            });
+        });
+    };
+    Mail.deactivateAccount = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/];
+            });
+        });
+    };
+    return Mail;
 }());
-exports.Input = Input;
+exports.Mail = Mail;

@@ -50,23 +50,26 @@ var decorators_1 = require("./../decorators");
 var middlewares_1 = require("../utils/middlewares");
 var User_1 = require("./../models/User");
 var validate_1 = __importDefault(require("./../utils/validator/validate"));
+var mail_service_1 = require("../services/mail.service");
+var passport_1 = __importDefault(require("passport"));
 var AuthController = /** @class */ (function () {
     function AuthController() {
     }
     AuthController.prototype.register = function (req, res) {
         return __awaiter(this, void 0, void 0, function () {
-            var rules, v, exists, _a, _b, _c, _d, e_1;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            var rules, v, exists, _a, _b, e_1;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
                         rules = {
                             email: ["required", "email"],
                             password: ["required", "min:8"],
+                            confirm_password: ["same:password"],
                         };
                         v = validate_1.default.make(req.body, rules);
                         return [4 /*yield*/, User_1.User.collection.findOne({ email: req.body.email })];
                     case 1:
-                        exists = _e.sent();
+                        exists = _c.sent();
                         if (exists) {
                             return [2 /*return*/, res.status(400).send({
                                     error: {
@@ -83,34 +86,229 @@ var AuthController = /** @class */ (function () {
                                     },
                                 })];
                         }
-                        _e.label = 2;
+                        delete req.body.confirm_password;
+                        _c.label = 2;
                     case 2:
-                        _e.trys.push([2, 5, , 6]);
-                        _b = (_a = res
-                            .status(201))
-                            .send;
-                        _d = (_c = User_1.User).generateAuthToken;
+                        _c.trys.push([2, 4, , 5]);
+                        _b = (_a = res.status(201)).send;
                         return [4 /*yield*/, User_1.User.create(req.body)];
-                    case 3: return [4 /*yield*/, _d.apply(_c, [_e.sent()])];
+                    case 3:
+                        _b.apply(_a, [_c.sent()]);
+                        return [3 /*break*/, 5];
                     case 4:
-                        _b.apply(_a, [_e.sent()]);
-                        return [3 /*break*/, 6];
-                    case 5:
-                        e_1 = _e.sent();
-                        res.status(400).send(e_1.message);
-                        return [3 /*break*/, 6];
-                    case 6: return [2 /*return*/];
+                        e_1 = _c.sent();
+                        res.status(400).send({
+                            error: e_1.message,
+                        });
+                        return [3 /*break*/, 5];
+                    case 5: return [2 /*return*/];
                 }
             });
         });
     };
+    AuthController.prototype.login = function (req, res) {
+        return __awaiter(this, void 0, void 0, function () {
+            var rules, v, user, token, e_2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        rules = {
+                            email: ["required", "email"],
+                            password: ["required", "min:8"],
+                        };
+                        v = validate_1.default.make(req.body, rules);
+                        if (!v.passes()) {
+                            return [2 /*return*/, res.status(400).send({
+                                    error: {
+                                        messsage: "input validation error",
+                                        body: v.getErrors(),
+                                    },
+                                })];
+                        }
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 4, , 5]);
+                        return [4 /*yield*/, User_1.User.findByCredentials(req.body.email, req.body.password)];
+                    case 2:
+                        user = _a.sent();
+                        token = User_1.User.generateAuthToken(user);
+                        return [4 /*yield*/, User_1.User.addToken(user, token)];
+                    case 3:
+                        _a.sent();
+                        res.send({ user: user, token: token });
+                        return [3 /*break*/, 5];
+                    case 4:
+                        e_2 = _a.sent();
+                        res.status(400).send({
+                            error: e_2.message,
+                        });
+                        return [3 /*break*/, 5];
+                    case 5: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    AuthController.prototype.logout = function (req, res) {
+        return __awaiter(this, void 0, void 0, function () {
+            var e_3;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!req.user) {
+                            throw new Error("Could not logout!");
+                        }
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, User_1.User.removeToken(req.user, req.user.token)];
+                    case 2:
+                        _a.sent();
+                        res.status(200).send({
+                            success: "logout successfull!",
+                        });
+                        return [3 /*break*/, 4];
+                    case 3:
+                        e_3 = _a.sent();
+                        res.status(500).send({
+                            error: e_3.message,
+                        });
+                        return [3 /*break*/, 4];
+                    case 4: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    AuthController.prototype.logoutAll = function (req, res) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                if (!req.user) {
+                    throw new Error("Could not logout!");
+                }
+                try {
+                    User_1.User.removeAllTokens(req.user);
+                    res.status(200).send({
+                        message: "Logged out all accounts",
+                    });
+                }
+                catch (e) {
+                    res.status(500).send({
+                        error: e.message,
+                    });
+                }
+                return [2 /*return*/];
+            });
+        });
+    };
+    AuthController.prototype.resetPassword = function (req, res) {
+        return __awaiter(this, void 0, void 0, function () {
+            var rules, v, user, link, e_4;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        rules = {
+                            email: ["required", "email"]
+                        };
+                        v = validate_1.default.make(req.body, rules);
+                        if (!v.passes()) {
+                            return [2 /*return*/, res.status(400).send({
+                                    error: {
+                                        messsage: "input validation error",
+                                        body: v.getErrors(),
+                                    },
+                                })];
+                        }
+                        return [4 /*yield*/, User_1.User.getUser(req.body.email)];
+                    case 1:
+                        user = _a.sent();
+                        if (!user) {
+                            return [2 /*return*/, res.status(404).send({
+                                    error: "email not found",
+                                })];
+                        }
+                        _a.label = 2;
+                    case 2:
+                        _a.trys.push([2, 4, , 5]);
+                        return [4 /*yield*/, User_1.User.passwordReset(user)];
+                    case 3:
+                        link = _a.sent();
+                        mail_service_1.Mail.resetPassword(user.email, "Password Reset Request", { name: user.name, link: link }, "./template/requestResetPassword.handlebars");
+                        res.status(200).send({
+                            success: "password reset email successfully sent",
+                        });
+                        return [3 /*break*/, 5];
+                    case 4:
+                        e_4 = _a.sent();
+                        res.status(500).send({
+                            error: e_4.message,
+                        });
+                        return [3 /*break*/, 5];
+                    case 5: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    AuthController.prototype.changePassword = function (req, res) {
+        return __awaiter(this, void 0, void 0, function () {
+            var recipient, e_5;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        return [4 /*yield*/, User_1.User.changePassword(req.body.user_id, req.body.token, req.body.password)];
+                    case 1:
+                        recipient = _a.sent();
+                        mail_service_1.Mail.passwordChanged(recipient.email, "Password Successfully Changed", { name: recipient.name }, "./template/requestChangePassword.handlebars");
+                        return [3 /*break*/, 3];
+                    case 2:
+                        e_5 = _a.sent();
+                        res.status(500).send({
+                            error: e_5.message
+                        });
+                        return [3 /*break*/, 3];
+                    case 3: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    AuthController.prototype.googleAuth = function () {
+        passport_1.default.authenticate('google', { scope: ['email', 'profile'] });
+    };
+    AuthController.prototype.googleCallBack = function (req, res) {
+        return res.send(req.user);
+    };
     __decorate([
         (0, decorators_1.post)("/register"),
-        (0, decorators_1.use)(middlewares_1.Input.trim(["email", "password"])),
-        (0, decorators_1.use)(middlewares_1.Input.sanitize(["email", "password"]))
+        (0, decorators_1.use)(middlewares_1.Input.sanitize(["email", "password", "confirm_password"]))
     ], AuthController.prototype, "register", null);
+    __decorate([
+        (0, decorators_1.post)("/login"),
+        (0, decorators_1.use)(middlewares_1.Input.sanitize(["email", "password"]))
+    ], AuthController.prototype, "login", null);
+    __decorate([
+        (0, decorators_1.post)("/logout"),
+        (0, decorators_1.use)(middlewares_1.auth)
+    ], AuthController.prototype, "logout", null);
+    __decorate([
+        (0, decorators_1.post)("logout/all"),
+        (0, decorators_1.use)(middlewares_1.auth)
+    ], AuthController.prototype, "logoutAll", null);
+    __decorate([
+        (0, decorators_1.post)("/password/reset"),
+        (0, decorators_1.use)(middlewares_1.Input.sanitize(["email"]))
+    ], AuthController.prototype, "resetPassword", null);
+    __decorate([
+        (0, decorators_1.use)(middlewares_1.Input.sanitize(["user_id", "token", "password", "confirm_password"])),
+        (0, decorators_1.post)('/password/change')
+    ], AuthController.prototype, "changePassword", null);
+    __decorate([
+        (0, decorators_1.get)('/auth/google')
+    ], AuthController.prototype, "googleAuth", null);
+    __decorate([
+        (0, decorators_1.get)('/auth/google/callback'),
+        (0, decorators_1.use)(passport_1.default.authenticate('google'))
+    ], AuthController.prototype, "googleCallBack", null);
     AuthController = __decorate([
-        (0, decorators_1.controller)("")
+        (0, decorators_1.controller)("/api/v1/auth")
     ], AuthController);
     return AuthController;
 }());
