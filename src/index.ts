@@ -1,7 +1,8 @@
-import express, { Request, Response } from "express"
+import express from "express"
 import bodyParser from "body-parser"
 import { AppRouter } from "./services/router.service"
 import "./controllers/EncryptionController"
+import "./controllers/DecryptionController"
 
 const port = process.env.PORT || 3000
 const app = express()
