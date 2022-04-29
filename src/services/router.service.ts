@@ -1,12 +1,12 @@
-import express from "express"
+import express from "express";
 
 export class AppRouter {
-  private static singleton: express.Router
+  private static singleton: express.Router;
 
   static instance(): express.Router {
     if (!AppRouter.singleton) {
-      AppRouter.singleton = express.Router()
+      AppRouter.singleton = express.Router();
     }
-    return AppRouter.singleton
+    return AppRouter.singleton;
   }
 }
