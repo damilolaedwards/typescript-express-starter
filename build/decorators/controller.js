@@ -41,7 +41,11 @@ function controller(routePrefix) {
         router[method].apply(
           router,
           __spreadArray(
-            __spreadArray(["" + routePrefix + path], middlewares, false),
+            __spreadArray(
+              ["".concat(routePrefix).concat(path)],
+              middlewares,
+              false
+            ),
             [routeHandler],
             false
           )

@@ -174,10 +174,11 @@ var __importDefault =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Node = void 0;
 var sdk_1 = __importDefault(require("@pinata/sdk"));
-var crypto_1 = __importDefault(require("crypto"));
 var multer_1 = __importDefault(require("multer"));
+var big_js_1 = __importDefault(require("big.js"));
 var alchemy_web3_1 = require("@alch/alchemy-web3");
 var decorators_1 = require("../decorators");
+var utils_services_1 = require("../services/utils.services");
 var ALCHEMY_API_URL = process.env.ALCHEMY_API_URL || "";
 var web3 = (0, alchemy_web3_1.createAlchemyWeb3)(ALCHEMY_API_URL);
 var abi = require("../../tipshot_abi.json");
@@ -203,8 +204,12 @@ var upload = (0, multer_1.default)({
 var Node = /** @class */ (function () {
   function Node() {}
   Node.prototype.upload = function (req, res) {
-    var _this = this;
-    if (!this.isJsonString(req.body.json_data)) {
+    if (
+      !utils_services_1.utils.isJsonString(
+        JSON.stringify(req.body.json_data)
+      ) ||
+      !req.body.json_data.key
+    ) {
       res.status(400).send({
         error: "Invalid json data",
       });
@@ -218,70 +223,31 @@ var Node = /** @class */ (function () {
         },
       });
     }
-    var encrypted = this.encrypt(JSON.stringify(json_data));
+    var encrypted = utils_services_1.utils.encrypt(JSON.stringify(json_data));
     var payload = {
       content: encrypted,
     };
     pinata
-      .pinJSONToIPFS(payload, {})
+      .pinJSONToIPFS(payload, {
+        pinataMetadata: {
+          name: req.body.address,
+        },
+      })
       .then(function (result) {
         res.status(200).send({
           ipfsHash: result.IpfsHash,
-          key: _this.encrypt(req.body.json_data.key),
+          key: utils_services_1.utils.encrypt(req.body.json_data.key),
           start_time: req.body.json_data.start_time,
           end_time: req.body.json_data.end_time,
-          odd: req.body.json_data.odd * 100,
+          odd: new big_js_1.default(req.body.json_data.odd).mul(100),
         });
       })
       .catch(function (err) {
         res.status(500).send({
           error: "Could not pin to IPFS",
+          message: err.message,
         });
       });
-  };
-  Node.prototype.viewTip = function (req, res) {
-    return __awaiter(this, void 0, void 0, function () {
-      var tx, tip, content, decrypted, _a;
-      return __generator(this, function (_b) {
-        switch (_b.label) {
-          case 0:
-            return [
-              4 /*yield*/,
-              tipshotContract.methods
-                .Purchases(req.body.address, req.body.id)
-                .call(),
-            ];
-          case 1:
-            tx = _b.sent();
-            if (!(tx.purchased && tx.key == this.encrypt(req.body.key)))
-              return [3 /*break*/, 5];
-            return [
-              4 /*yield*/,
-              tipshotContract.methods.Predictions(req.body.id).call(),
-            ];
-          case 2:
-            tip = _b.sent();
-            return [4 /*yield*/, fetch(gateway_url + tip.ipfsHash)];
-          case 3:
-            content = _b.sent();
-            _a = this.decrypt;
-            return [4 /*yield*/, content.text()];
-          case 4:
-            decrypted = _a.apply(this, [_b.sent()]);
-            res.status(200).send({
-              data: JSON.parse(decrypted),
-            });
-            return [3 /*break*/, 6];
-          case 5:
-            res.status(404).send({
-              data: null,
-            });
-            _b.label = 6;
-          case 6:
-            return [2 /*return*/];
-        }
-      });
-    });
   };
   Node.prototype.encryptPurchaseKey = function (req, res) {
     if (req.body.key.length < 6) {
@@ -291,31 +257,57 @@ var Node = /** @class */ (function () {
     }
     res.status(200).send({
       id: req.body.id,
-      key: this.encrypt(req.body.key),
+      key: utils_services_1.utils.encrypt(req.body.key),
     });
   };
-  Node.prototype.isJsonString = function (str) {
-    try {
-      JSON.parse(str);
-    } catch (e) {
-      return false;
-    }
-    return true;
-  };
-  Node.prototype.encrypt = function (data) {
-    var cipher = crypto_1.default.createCipheriv("aes256", key, vector);
-    var encrypted = cipher.update(data, "utf8", "base64");
-    encrypted += cipher.final("base64");
-    return encrypted;
-  };
-  Node.prototype.decrypt = function (data) {
-    var decipher = crypto_1.default.createDecipheriv(
-      "aes-256-cbc",
-      key,
-      vector
-    );
-    var decrypted = decipher.update(data, "base64", "utf8");
-    return decrypted + decipher.final("utf8");
+  Node.prototype.viewTip = function (req, res) {
+    return __awaiter(this, void 0, void 0, function () {
+      var tx, tip, content, decrypted, _a, _b;
+      return __generator(this, function (_c) {
+        switch (_c.label) {
+          case 0:
+            return [
+              4 /*yield*/,
+              tipshotContract.methods
+                .Purchases(req.body.address, req.body.id)
+                .call(),
+            ];
+          case 1:
+            tx = _c.sent();
+            if (
+              !(
+                tx.purchased &&
+                utils_services_1.utils.decrypt(tx.key) == req.body.key
+              )
+            )
+              return [3 /*break*/, 5];
+            return [
+              4 /*yield*/,
+              tipshotContract.methods.Predictions(req.body.id).call(),
+            ];
+          case 2:
+            tip = _c.sent();
+            return [4 /*yield*/, fetch(gateway_url + tip.ipfsHash)];
+          case 3:
+            content = _c.sent();
+            _b = (_a = utils_services_1.utils).decrypt;
+            return [4 /*yield*/, content.text()];
+          case 4:
+            decrypted = _b.apply(_a, [_c.sent()]);
+            res.status(200).send({
+              data: JSON.parse(decrypted),
+            });
+            return [3 /*break*/, 6];
+          case 5:
+            res.status(404).send({
+              data: null,
+            });
+            _c.label = 6;
+          case 6:
+            return [2 /*return*/];
+        }
+      });
+    });
   };
   __decorate(
     [
@@ -327,15 +319,15 @@ var Node = /** @class */ (function () {
     null
   );
   __decorate(
-    [(0, decorators_1.post)("/tip/view")],
-    Node.prototype,
-    "viewTip",
-    null
-  );
-  __decorate(
     [(0, decorators_1.post)("/purchase")],
     Node.prototype,
     "encryptPurchaseKey",
+    null
+  );
+  __decorate(
+    [(0, decorators_1.post)("/tip/view")],
+    Node.prototype,
+    "viewTip",
     null
   );
   Node = __decorate([(0, decorators_1.controller)("/api/v1")], Node);

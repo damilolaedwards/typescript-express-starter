@@ -5,18 +5,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-var express_1 = __importDefault(require("express"));
-var body_parser_1 = __importDefault(require("body-parser"));
-var router_service_1 = require("./services/router.service");
-require("./controllers/Node");
+var app_1 = __importDefault(require("./app"));
 var port = process.env.PORT || 5000;
-var app = (0, express_1.default)();
-app.use(
-  body_parser_1.default.urlencoded({
-    extended: true,
-  })
-);
-app.use(router_service_1.AppRouter.instance());
-app.listen(port, function () {
-  console.log("Server started at http://localhost:" + port);
+app_1.default.listen(port, function () {
+  console.log("Server started at http://localhost:".concat(port));
 });
