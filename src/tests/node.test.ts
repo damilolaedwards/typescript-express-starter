@@ -278,7 +278,7 @@ test("encrypts profile data", async function () {
   const response = await request(app)
     .post("/api/v1/profile/create")
     .send({
-      address: "0xc4Ed33B15E7bE1A427D075C1c43c6c7F8923f433",
+      address: "0x4919B45b005058Fabc63AC2da39f7859eDeD9271",
       data: {
         name: "rick",
         sport: "football",
@@ -293,3 +293,40 @@ test("returns null if empty profile on profile view", async function () {
     .expect(404);
   expect(response.body.message).toBe("No profile data found");
 });
+
+test("returns decrypted profile data on profile view", async function () {
+  const response = await request(app)
+    .get("/api/v1/profile/0x4919B45b005058Fabc63AC2da39f7859eDeD9271")
+    .expect(200);
+  expect(response.body.data).toMatchObject({
+    address: "0x4919B45b005058Fabc63AC2da39f7859eDeD9271",
+    data: {
+      name: "rick",
+      sport: "football",
+    },
+  });
+});
+
+// test("return decrypted tip if purchased", async function () {
+//   const response = await request(app)
+//     .post("/api/v1/tip/view")
+//     .send({
+//       id: "1",
+//       address: "0x5fdC69B325eF6FA7cDD4A3c44b114A5c7045046E",
+//       key: "my_purchase_key_123",
+//     })
+//     .expect(200);
+//   expect(response.body.data).toBe(null);
+// });
+
+// test("return decrypted tip if owner", async function () {
+//   const response = await request(app)
+//     .post("/api/v1/tip/view")
+//     .send({
+//       id: "1",
+//       address: "0x4919B45b005058Fabc63AC2da39f7859eDeD9271",
+//       key: "my_key_123",
+//     })
+//     .expect(200);
+//   expect(response.body.data).toBe(null);
+// });

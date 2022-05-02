@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import pinataSDK from "@pinata/sdk";
 import multer from "multer";
 import Big from "big.js";
+import fetch from "node-fetch";
 import { createAlchemyWeb3 } from "@alch/alchemy-web3";
 import { controller, get, post, use } from "../decorators";
 import { utils } from "../services/utils.services";
@@ -104,32 +105,50 @@ export class Node {
         error: "Invalid input parameters",
       });
     }
-    const tx = await tipshotContract.methods
-      .Purchases(req.body.address, req.body.id)
-      .call();
-    if (tx.purchased && utils.decrypt(tx.key) == req.body.key) {
+    try {
+      const tx = await tipshotContract.methods
+        .Purchases(req.body.address, req.body.id)
+        .call();
       const tip = await tipshotContract.methods.Predictions(req.body.id).call();
+      let canView = false
+      if ((tx.purchased &&  utils.decrypt(tx.key) == req.body.key) ||
+      (tip.seller == req.body.address &&  utils.decrypt(tip.key) == req.body.key) ) {
+        canView = true
+      }
+
+      if (!canView) {
+        return res.status(404).send({
+          data: null,
+        });
+      }
+
+      
       const content = await fetch(gateway_url + tip.ipfsHash);
-      const decrypted = utils.decrypt(await content.text());
+      const result = await content.json();
+      const decrypted = utils.decrypt(result.json_data);
       res.status(200).send({
         data: JSON.parse(decrypted),
       });
-    } else {
-      return res.status(404).send({
-        data: null,
+    } catch (e) {
+      return res.status(500).send({
+        error: "Something went wrong",
+        message: e,
       });
     }
   }
 
   @post("/profile/create")
   async createProfile(req: Request, res: Response) {
-    const address = req.body.address
-    if (!req.body.address || !utils.isJsonString(JSON.stringify(req.body.data))) {
+    const address = req.body.address;
+    if (
+      !req.body.address ||
+      !utils.isJsonString(JSON.stringify(req.body.data))
+    ) {
       return res.status(400).send({
         error: "Invalid json data",
       });
     }
-    const encrypted = utils.encrypt(JSON.stringify(req.body.data));
+    const encrypted = utils.encrypt(JSON.stringify(req.body));
     const payload = {
       content: encrypted,
     };
@@ -154,16 +173,26 @@ export class Node {
 
   @get("/profile/:address")
   async profile(req: Request, res: Response) {
-    const user = await tipshotContract.methods.User(req.params.address).call();
-    if (user.profile) {
-      const content = await fetch(gateway_url + user.profile);
-      const decrypted = utils.decrypt(await content.text());
-      return res.status(200).send({
-        data: JSON.parse(decrypted),
+    try {
+      const user = await tipshotContract.methods
+        .User(req.params.address)
+        .call();
+      if (user.profile) {
+        const content = await fetch(gateway_url + user.profile);
+        const result = await content.json();
+        const decrypted = utils.decrypt(result.content);
+        return res.status(200).send({
+          data: JSON.parse(decrypted),
+        });
+      }
+      return res.status(404).send({
+        message: "No profile data found",
+      });
+    } catch (e) {
+      return res.status(500).send({
+        error: "Something went wrong",
+        message: e,
       });
     }
-    return res.status(404).send({
-      message: "No profile data found",
-    });
   }
 }
