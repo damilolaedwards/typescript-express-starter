@@ -260,10 +260,25 @@ test("reverts if invalid json data on profile creation", async function () {
   expect(response.body.error).toBe("Invalid json data");
 });
 
+test("reverts if address non-existent on profile creation", async function () {
+  const response = await request(app)
+    .post("/api/v1/profile/create")
+    .send({
+      address: "",
+      data: {
+        name: "rick",
+        sport: "football",
+      },
+    })
+    .expect(400);
+  expect(response.body.error).toBe("Invalid json data");
+});
+
 test("encrypts profile data", async function () {
   const response = await request(app)
     .post("/api/v1/profile/create")
     .send({
+      address: "0xc4Ed33B15E7bE1A427D075C1c43c6c7F8923f433",
       data: {
         name: "rick",
         sport: "football",

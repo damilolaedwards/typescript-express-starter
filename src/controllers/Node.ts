@@ -123,7 +123,8 @@ export class Node {
 
   @post("/profile/create")
   async createProfile(req: Request, res: Response) {
-    if (!utils.isJsonString(JSON.stringify(req.body.data))) {
+    const address = req.body.address
+    if (!req.body.address || !utils.isJsonString(JSON.stringify(req.body.data))) {
       return res.status(400).send({
         error: "Invalid json data",
       });
@@ -135,7 +136,7 @@ export class Node {
     pinata
       .pinJSONToIPFS(payload, {
         pinataMetadata: {
-          name: "profile_" + req.body.address,
+          name: "profile_" + address,
         },
       })
       .then((result) => {
