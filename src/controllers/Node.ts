@@ -124,13 +124,48 @@ export class Node {
 
   @post("/profile/create")
   async createProfile(req: Request, res:Response) {
-    
+    if(!utils.isJsonString(JSON.stringify(req.body.data))){
+      return res.status(400).send({
+        error : "Invalid json data"
+      })
+    }
+    const encrypted = utils.encrypt(JSON.stringify(req.body.data));
+    const payload = {
+      content: encrypted,
+    };
+    pinata
+      .pinJSONToIPFS(payload, {pinataMetadata: {
+        name: "profile_" + req.body.address 
+    }})
+    .then((result) => {
+      return res.status(200).send({
+        _profileData: result.IpfsHash,
+      });
+    })
+    .catch((err) => {
+      res.status(500).send({
+        error: "Could not pin to IPFS",
+        message : err.message
+      });
+    });
+
+
   }
 
   @get('/profile/:address')
-  profile(req: Request, res:Response){
-
-  }
+  async profile(req: Request, res:Response){
+    const user = await tipshotContract.methods.User(req.params.address).call();
+    if(user.profile){
+      const content = await fetch(gateway_url + user.profile);
+      const decrypted = utils.decrypt(await content.text());
+      return res.status(200).send({
+        data: JSON.parse(decrypted),
+      });
+    }
+    return res.status(404).send({
+      message : "No profile data found"
+    })
+  } 
 
 
 
