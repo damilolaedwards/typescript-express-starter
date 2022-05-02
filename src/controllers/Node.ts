@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import pinataSDK from "@pinata/sdk";
 import multer from "multer";
-import Big from 'big.js';
+import Big from "big.js";
 import { createAlchemyWeb3 } from "@alch/alchemy-web3";
 import { controller, get, post, use } from "../decorators";
-import {utils} from "../services/utils.services"
-import {requiredProps} from "../services/middleware.service"
+import { utils } from "../services/utils.services";
+import { requiredProps } from "../services/middleware.service";
 
 const ALCHEMY_API_URL = process.env.ALCHEMY_API_URL || "";
 const web3 = createAlchemyWeb3(ALCHEMY_API_URL);
@@ -33,16 +33,15 @@ const upload = multer({
 
 @controller("/api/v1")
 export class Node {
-  
   @post("/upload-tip")
   @use(requiredProps)
-  @use(upload.single('image'))
+  @use(upload.single("image"))
   upload(req: Request, res: Response) {
-    const key = req.body.json_data.key
-    const odd = req.body.json_data.odd
-    const start_time = req.body.json_data.start_time
-    const end_time = req.body.json_data.end_time
-    
+    const key = req.body.json_data.key;
+    const odd = req.body.json_data.odd;
+    const start_time = req.body.json_data.start_time;
+    const end_time = req.body.json_data.end_time;
+
     if (req.file) {
       req.body.json_data = {
         ...req.body,
@@ -58,9 +57,11 @@ export class Node {
       content: encrypted,
     };
     pinata
-      .pinJSONToIPFS(payload, {pinataMetadata: {
-        name: req.body.address
-    }})
+      .pinJSONToIPFS(payload, {
+        pinataMetadata: {
+          name: req.body.address,
+        },
+      })
       .then((result) => {
         return res.status(200).send({
           ipfsHash: result.IpfsHash,
@@ -73,11 +74,10 @@ export class Node {
       .catch((err) => {
         return res.status(500).send({
           error: "Could not pin to IPFS",
-          message : err.message
+          message: err.message,
         });
       });
   }
-
 
   @post("/purchase")
   encryptPurchaseKey(req: Request, res: Response) {
@@ -97,10 +97,9 @@ export class Node {
     });
   }
 
-
   @post("/tip/view")
   async viewTip(req: Request, res: Response) {
-    if(!req.body.address || !req.body.id){
+    if (!req.body.address || !req.body.id) {
       return res.status(400).send({
         error: "Invalid input parameters",
       });
@@ -123,39 +122,39 @@ export class Node {
   }
 
   @post("/profile/create")
-  async createProfile(req: Request, res:Response) {
-    if(!utils.isJsonString(JSON.stringify(req.body.data))){
+  async createProfile(req: Request, res: Response) {
+    if (!utils.isJsonString(JSON.stringify(req.body.data))) {
       return res.status(400).send({
-        error : "Invalid json data"
-      })
+        error: "Invalid json data",
+      });
     }
     const encrypted = utils.encrypt(JSON.stringify(req.body.data));
     const payload = {
       content: encrypted,
     };
     pinata
-      .pinJSONToIPFS(payload, {pinataMetadata: {
-        name: "profile_" + req.body.address 
-    }})
-    .then((result) => {
-      return res.status(200).send({
-        _profileData: result.IpfsHash,
+      .pinJSONToIPFS(payload, {
+        pinataMetadata: {
+          name: "profile_" + req.body.address,
+        },
+      })
+      .then((result) => {
+        return res.status(200).send({
+          _profileData: result.IpfsHash,
+        });
+      })
+      .catch((err) => {
+        return res.status(500).send({
+          error: "Could not pin to IPFS",
+          message: err.message,
+        });
       });
-    })
-    .catch((err) => {
-      return res.status(500).send({
-        error: "Could not pin to IPFS",
-        message : err.message
-      });
-    });
-
-
   }
 
-  @get('/profile/:address')
-  async profile(req: Request, res:Response){
+  @get("/profile/:address")
+  async profile(req: Request, res: Response) {
     const user = await tipshotContract.methods.User(req.params.address).call();
-    if(user.profile){
+    if (user.profile) {
       const content = await fetch(gateway_url + user.profile);
       const decrypted = utils.decrypt(await content.text());
       return res.status(200).send({
@@ -163,11 +162,7 @@ export class Node {
       });
     }
     return res.status(404).send({
-      message : "No profile data found"
-    })
-  } 
-
-
-
-  
+      message: "No profile data found",
+    });
+  }
 }

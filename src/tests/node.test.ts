@@ -1,6 +1,6 @@
 import request from "supertest";
 import app from "../app";
-import {utils} from "../services/utils.services"
+import { utils } from "../services/utils.services";
 
 test("it should encrypt new tips data without image", async function () {
   const response = await request(app)
@@ -219,7 +219,6 @@ test("revert on purchase if key not set", async function () {
   expect(response.body.error).toBe("key length too short, min: 6 chars");
 });
 
-
 test("revert on tip view if address not set", async function () {
   const response = await request(app)
     .post("/api/v1/tip/view")
@@ -250,33 +249,32 @@ test("return null if tip isn't purchased", async function () {
       address: "0x4919B45b005058Fabc63AC2da39f7859eDeD9271",
     })
     .expect(404);
-    expect(response.body.data).toBe(null)
-})
-
-test("returns decrypted tips data if tips purchased", async function () {
-  
-})
+  expect(response.body.data).toBe(null);
+});
 
 test("reverts if invalid json data on profile creation", async function () {
-  
-})
+  const response = await request(app)
+    .post("/api/v1/profile/create")
+    .send("random string")
+    .expect(400);
+  expect(response.body.error).toBe("Invalid json data");
+});
 
 test("encrypts profile data", async function () {
-  
-})
+  const response = await request(app)
+    .post("/api/v1/profile/create")
+    .send({
+      data: {
+        name: "rick",
+        sport: "football",
+      },
+    })
+    .expect(200);
+});
 
 test("returns null if empty profile on profile view", async function () {
-  
-})
-
-test("returns user's profile data", async function () {
-  
-})
-
-
-
-
-
-
-
-
+  const response = await request(app)
+    .get("/api/v1/profile/0xc4Ed33B15E7bE1A427D075C1c43c6c7F8923f433")
+    .expect(404);
+  expect(response.body.message).toBe("No profile data found");
+});
