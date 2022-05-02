@@ -11,6 +11,7 @@ function requiredProps(req, res, next) {
         res.send({
             error: "Invalid json data",
         });
+        return;
     }
     if (req.body.json_data.key &&
         req.body.json_data.start_time &&

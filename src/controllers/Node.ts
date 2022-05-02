@@ -71,7 +71,7 @@ export class Node {
         });
       })
       .catch((err) => {
-        res.status(500).send({
+        return res.status(500).send({
           error: "Could not pin to IPFS",
           message : err.message
         });
@@ -91,7 +91,7 @@ export class Node {
         error: "invalid id",
       });
     }
-    res.status(200).send({
+    return res.status(200).send({
       id: req.body.id,
       key: utils.encrypt(req.body.key),
     });
@@ -116,7 +116,7 @@ export class Node {
         data: JSON.parse(decrypted),
       });
     } else {
-      res.status(404).send({
+      return res.status(404).send({
         data: null,
       });
     }
@@ -143,7 +143,7 @@ export class Node {
       });
     })
     .catch((err) => {
-      res.status(500).send({
+      return res.status(500).send({
         error: "Could not pin to IPFS",
         message : err.message
       });

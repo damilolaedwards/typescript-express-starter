@@ -253,6 +253,28 @@ test("return null if tip isn't purchased", async function () {
     expect(response.body.data).toBe(null)
 })
 
+test("returns decrypted tips data if tips purchased", async function () {
+  
+})
+
+test("reverts if invalid json data on profile creation", async function () {
+  
+})
+
+test("encrypts profile data", async function () {
+  
+})
+
+test("returns null if empty profile on profile view", async function () {
+  
+})
+
+test("returns user's profile data", async function () {
+  
+})
+
+
+
 
 
 

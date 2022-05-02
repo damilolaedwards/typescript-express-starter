@@ -13,6 +13,7 @@ export function requiredProps(
     res.send({
       error: "Invalid json data",
     });
+    return;
   }
   if (
     req.body.json_data.key &&
