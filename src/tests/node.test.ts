@@ -2,6 +2,14 @@ import request from "supertest";
 import app from "../app";
 import { utils } from "../services/utils.services";
 
+const sample_tip = {
+  start_time: "12345678",
+  end_time: "87654321",
+  odd: "2.05",
+  key: "my_lost_key",
+  tips: {},
+}
+
 test("it should encrypt new tips data without image", async function () {
   const response = await request(app)
     .post("/api/v1/upload-tip")
@@ -9,13 +17,7 @@ test("it should encrypt new tips data without image", async function () {
     .field("address", "test_0x4919B45b005058Fabc63AC2da39f7859eDeD9271")
     .field(
       "json_data",
-      JSON.stringify({
-        start_time: "12345678",
-        end_time: "87654321",
-        odd: "2.05",
-        key: "my_lost_key",
-        tips: {},
-      })
+      JSON.stringify(sample_tip)
     )
     .expect(200);
   expect(response.body.key).toBe(utils.encrypt("my_lost_key"));
@@ -31,13 +33,7 @@ test("it should encrypt new tips data with image", async function () {
     .field("address", "test_0x4919B45b005058Fabc63AC2da39f7859eDeD9271")
     .field(
       "json_data",
-      JSON.stringify({
-        start_time: "12345678",
-        end_time: "87654321",
-        odd: "2.05",
-        key: "my_lost_key",
-        tips: {},
-      })
+      JSON.stringify(sample_tip)
     )
     .attach("image", __dirname + "/fixtures/avatar.jpeg")
     .expect(200);
@@ -307,26 +303,30 @@ test("returns decrypted profile data on profile view", async function () {
   });
 });
 
-// test("return decrypted tip if purchased", async function () {
-//   const response = await request(app)
-//     .post("/api/v1/tip/view")
-//     .send({
-//       id: "1",
-//       address: "0x5fdC69B325eF6FA7cDD4A3c44b114A5c7045046E",
-//       key: "my_purchase_key_123",
-//     })
-//     .expect(200);
-//   expect(response.body.data).toBe(null);
-// });
+test("return decrypted tip if purchased", async function () {
+  const response = await request(app)
+    .post("/api/v1/tip/view")
+    .send({
+      id: "1",
+      address: "0x8ae0C30C5FBC78e242815cf202A534af643771aa",
+      key: "my_purchase_key",
+    })
+    .expect(200);
+  expect(response.body).toMatchObject({
+    "data": sample_tip
+  });
+});
 
-// test("return decrypted tip if owner", async function () {
-//   const response = await request(app)
-//     .post("/api/v1/tip/view")
-//     .send({
-//       id: "1",
-//       address: "0x4919B45b005058Fabc63AC2da39f7859eDeD9271",
-//       key: "my_key_123",
-//     })
-//     .expect(200);
-//   expect(response.body.data).toBe(null);
-// });
+test("return decrypted tip if owner", async function () {
+  const response = await request(app)
+    .post("/api/v1/tip/view")
+    .send({
+      id: "1",
+      address: "0x4919B45b005058Fabc63AC2da39f7859eDeD9271",
+      key: "my_key_123",
+    })
+    .expect(200);
+  expect(response.body).toMatchObject({
+    "data": sample_tip
+  });
+});

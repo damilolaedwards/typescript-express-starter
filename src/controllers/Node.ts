@@ -125,7 +125,7 @@ export class Node {
       
       const content = await fetch(gateway_url + tip.ipfsHash);
       const result = await content.json();
-      const decrypted = utils.decrypt(result.json_data);
+      const decrypted = utils.decrypt(result.content);
       res.status(200).send({
         data: JSON.parse(decrypted),
       });
