@@ -39,7 +39,7 @@
 To run integration tests
 
 ```sh
-  npm run dev
+  npm run test
 ```
 
 ## Discussion
