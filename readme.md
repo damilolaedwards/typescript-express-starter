@@ -14,9 +14,6 @@
 - [Express](https://expressjs.com/)
 - [Pinata](https://www.pinata.cloud/)
 - [Alchemy](https://www.alchemy.com/)
-  ```
-
-  ```
 
 ### Installation
 
@@ -31,7 +28,8 @@
 3. Create a `config` folder in the root directory.
    copy the contents of `config.example` to `config` & set env variables
 
-4. Run
+4. Run :rocket:
+
    ```sh
    npm run dev
    ```
